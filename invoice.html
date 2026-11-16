@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice — Gradys · NexaOne</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f1a2e; --ink-soft: #45566e; --ink-faint: #8fa0b8;
+    --paper: #eef3fb; --surface: #fff; --accent: #2f5ce0; --accent-strong: #1c3aa8; --accent-2: #06b6d4;
+    --grad: linear-gradient(135deg, #1e3a8a 0%, #2f5ce0 55%, #06b6d4 100%);
+    --line: rgba(15, 26, 46, .14); --line-soft: rgba(15, 26, 46, .08); --green: #16a34a;
+    --shadow-lg: 0 30px 70px -30px rgba(15, 26, 46, .55);
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; font-family: "Manrope", system-ui, sans-serif; background: var(--paper); color: var(--ink); -webkit-font-smoothing: antialiased; line-height: 1.5; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 60px; display: grid; grid-template-columns: 360px 1fr; gap: 26px; align-items: start; }
+
+  /* Builder panel */
+  .panel { position: sticky; top: 20px; background: var(--ink); color: #fff; border-radius: 20px; padding: 22px; box-shadow: var(--shadow-lg); }
+  .panel h1 { font-size: 1.25rem; margin: 0 0 4px; }
+  .panel .muted { color: rgba(255,255,255,.6); font-size: .85rem; margin: 0 0 18px; }
+  .panel h2 { font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--accent-2); margin: 18px 0 8px; }
+  .opt { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.06); margin-bottom: 6px; cursor: pointer; font-size: .92rem; }
+  .opt:hover { background: rgba(255,255,255,.1); }
+  .opt input[type=radio], .opt input[type=checkbox] { accent-color: var(--accent-2); width: 17px; height: 17px; }
+  .opt span { flex: 1; }
+  .opt small { color: rgba(255,255,255,.6); font-weight: 700; white-space: nowrap; }
+  .qty { width: 54px; font: inherit; font-weight: 800; padding: 4px 6px; border-radius: 8px; border: 0; text-align: center; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .field { display: grid; gap: 4px; margin-bottom: 10px; font-size: .82rem; font-weight: 700; color: rgba(255,255,255,.8); }
+  .field input, .field select, .field textarea { font: inherit; font-size: .92rem; font-weight: 500; padding: 9px 10px; border-radius: 10px; border: 0; color: var(--ink); width: 100%; }
+  .field textarea { min-height: 54px; resize: vertical; }
+  .actions { display: grid; gap: 8px; margin-top: 16px; }
+  .btn { font: inherit; font-weight: 800; font-size: .95rem; padding: 12px 14px; border-radius: 12px; border: 1.5px solid transparent; cursor: pointer; text-align: center; }
+  .btn.primary { background: #fff; color: var(--accent-strong); }
+  .btn.ghost { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.3); }
+  .btn:hover { transform: translateY(-1px); }
+
+  /* Invoice document */
+  .doc { position: relative; background: #fff; border-radius: 16px; padding: 46px 50px; box-shadow: var(--shadow-lg); }
+  .d-head { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding-bottom: 22px; border-bottom: 3px solid var(--ink); }
+  .d-brand { font-size: 1.8rem; font-weight: 800; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .d-from { color: var(--ink-soft); font-size: .86rem; margin-top: 4px; }
+  .d-title { text-align: right; }
+  .d-title h2 { font-size: 2rem; margin: 0 0 8px; text-transform: uppercase; letter-spacing: .08em; }
+  .d-meta { display: flex; justify-content: flex-end; gap: 10px; font-size: .88rem; }
+  .d-meta span { color: var(--ink-faint); font-weight: 700; }
+  .paid { position: absolute; top: 130px; right: 60px; transform: rotate(-12deg); border: 4px solid var(--green); color: var(--green); font-weight: 800; font-size: 2.1rem; letter-spacing: .2em; padding: 4px 20px; border-radius: 10px; opacity: .85; }
+  .d-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 22px 0; }
+  .lbl { display: block; text-transform: uppercase; letter-spacing: .12em; font-size: .7rem; font-weight: 800; color: var(--accent); margin-bottom: 6px; }
+  .d-parties b { display: block; font-size: 1.05rem; }
+  .d-parties span { color: var(--ink-soft); font-size: .9rem; white-space: pre-line; }
+  table { width: 100%; border-collapse: collapse; font-size: .93rem; }
+  th { text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: var(--ink-faint); padding: 10px 8px; background: var(--paper); }
+  th:not(:first-child), td:not(:first-child) { text-align: right; white-space: nowrap; }
+  td { padding: 11px 8px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  td small { display: block; color: var(--ink-faint); font-size: .8rem; }
+  tr.disc td { color: var(--green); font-weight: 700; }
+  tfoot td { border: 0; padding: 7px 8px; font-weight: 700; }
+  tfoot tr.sub td { color: var(--ink-soft); font-weight: 600; padding-top: 16px; }
+  tfoot tr.grand td { font-size: 1.2rem; font-weight: 800; border-top: 2px solid var(--ink); padding-top: 12px; }
+  .due { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 18px; background: var(--paper); border-radius: 14px; padding: 16px 20px; }
+  .due b { font-size: 1rem; }
+  .due span { font-size: 1.7rem; font-weight: 800; }
+  .terms { display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--line); }
+  .terms p { margin: 0; color: var(--ink-soft); font-size: .88rem; white-space: pre-line; }
+  .foot { margin-top: 30px; text-align: center; color: var(--ink-faint); font-size: .82rem; }
+
+  @media (max-width: 960px) { .wrap { grid-template-columns: 1fr; } .panel { position: static; } .doc { padding: 26px 18px; } .d-parties, .terms { grid-template-columns: 1fr; } .d-title { text-align: left; } .d-meta { justify-content: flex-start; } }
+  @media print {
+    @page { margin: 12mm; }
+    body { background: #fff; }
+    .panel { display: none !important; }
+    .wrap { display: block; padding: 0; max-width: none; }
+    .doc { box-shadow: none; padding: 0; border-radius: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== Builder (not printed) ===== -->
+  <aside class="panel">
+    <h1>Invoice builder</h1>
+    <p class="muted">Pick what Gradys is buying. The invoice updates on the right.</p>
+
+    <h2>Website</h2>
+    <label class="opt"><input type="radio" name="pkg" value="static" checked><span>Static Site</span><small>$500</small></label>
+    <label class="opt"><input type="radio" name="pkg" value="full"><span>Full Site</span><small>$1,000</small></label>
+    <label class="opt"><input type="radio" name="pkg" value="none"><span>No website package</span><small>—</small></label>
+
+    <h2>Add-ons</h2>
+    <label class="opt"><input type="checkbox" data-addon="pages"><span>Extra pages</span><input class="qty" type="number" min="1" value="1" data-qty="pages" aria-label="Number of extra pages"><small>$100 ea</small></label>
+    <label class="opt"><input type="checkbox" data-addon="direction"><span>Customer direction</span><small>$50</small></label>
+    <label class="opt"><input type="checkbox" data-addon="updates"><span>Monthly updates</span><small>$50/mo</small></label>
+    <label class="opt"><input type="checkbox" data-addon="ads"><span>Ad creation (3/mo)</span><small>$100/mo</small></label>
+    <label class="opt"><input type="checkbox" data-addon="ai"><span>AI chatbot</span><small>$200 + $30/mo</small></label>
+    <label class="opt"><input type="checkbox" data-addon="seo"><span>SEO optimization</span><small>$100</small></label>
+
+    <h2>Details</h2>
+    <div class="row">
+      <label class="field" style="flex:1">Type
+        <select data-type><option>Invoice</option><option>Quote</option><option>Receipt</option></select>
+      </label>
+      <label class="field" style="width:110px">Discount %
+        <input type="number" min="0" max="100" step="1" placeholder="0" data-discount>
+      </label>
+    </div>
+    <label class="opt" style="background:none;padding:0 2px"><input type="checkbox" data-disc-monthly><span>Apply discount to monthly too</span></label>
+    <label class="field">Invoice number <input type="text" data-no-in></label>
+    <label class="field">Bill to
+      <textarea data-billto>Gradys
+736 W Blue Vista Ln #200
+Midvale, UT 84047
+gradysmidvale@gmail.com</textarea>
+    </label>
+    <label class="field">How to pay <input type="text" placeholder="e.g. Zelle, Venmo, check or card" data-pay></label>
+    <label class="field">Email it to <input type="email" value="gradysmidvale@gmail.com" data-to></label>
+
+    <div class="actions">
+      <button type="button" class="btn primary" data-print>⤓ Save as PDF</button>
+      <button type="button" class="btn ghost" data-email>✉ Email invoice</button>
+      <button type="button" class="btn ghost" data-copy>⧉ Copy as text</button>
+    </div>
+  </aside>
+
+  <!-- ===== Invoice document ===== -->
+  <article class="doc" data-doc>
+    <header class="d-head">
+      <div><div class="d-brand">NexaOne</div><div class="d-from">NexaOne LLC · Ava Magee<br>nexaone.org · aamagee113@gmail.com</div></div>
+      <div class="d-title">
+        <h2 data-r-type>Invoice</h2>
+        <div class="d-meta"><span>No.</span><b data-r-no></b></div>
+        <div class="d-meta"><span>Date</span><b data-r-date></b></div>
+        <div class="d-meta" data-r-due-row><span>Due</span><b>Before work begins</b></div>
+      </div>
+    </header>
+    <div class="paid" data-paid hidden>PAID</div>
+    <section class="d-parties">
+      <div><span class="lbl">Bill to</span><span data-r-billto></span></div>
+      <div><span class="lbl">Project</span><b>Gradys website</b><span>gradysmidvale.com</span></div>
+    </section>
+    <table>
+      <thead><tr><th>Description</th><th>One-time</th><th>Monthly</th></tr></thead>
+      <tbody data-lines></tbody>
+      <tfoot data-totals></tfoot>
+    </table>
+    <div class="due"><b data-due-label>Amount due</b><span data-due></span></div>
+    <section class="terms">
+      <div><span class="lbl">Terms</span><p>The one-time total is due in full before work begins. Monthly services are billed each month starting the month after launch and can be cancelled anytime with written notice. The website is owned by Gradys once the one-time total is paid in full.</p></div>
+      <div data-pay-box hidden><span class="lbl">How to pay</span><p data-r-pay></p></div>
+    </section>
+    <p class="foot">Thank you for choosing NexaOne · nexaone.org</p>
+  </article>
+</div>
+
+<script>
+(() => {
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+  const money = n => '$' + (Math.round(n * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  const PKG = {
+    static: { name: 'Static Site', note: 'Design, home page, full menu, live hours & specials, photos, mobile, Google setup, domain & launch', once: 500 },
+    full:   { name: 'Full Site', note: 'Everything in the Static Site plus dashboard, ordering, booking, events, extra pages, reviews, sign-up & analytics', once: 1000 }
+  };
+  const ADDONS = {
+    pages:     { name: 'Extra pages', note: '$100 per page', once: 100, qty: true },
+    direction: { name: 'Customer direction', note: 'One-tap call, email and Google Maps buttons', once: 50 },
+    updates:   { name: 'Monthly updates', note: 'Menu, specials, hours and photo changes', mo: 50 },
+    ads:       { name: 'Ad creation', note: '3 custom ads per month', mo: 100 },
+    ai:        { name: 'AI chatbot', note: 'Newest-generation AI assistant: setup + monthly', once: 200, mo: 30 },
+    seo:       { name: 'SEO optimization', note: 'One-time local search setup', once: 100 }
+  };
+
+  const now = new Date(), pad = n => String(n).padStart(2, '0');
+  const fmtDate = d => d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  $('[data-no-in]').value = `GR-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`;
+
+  function lines() {
+    const out = [];
+    const pkg = $('[name=pkg]:checked').value;
+    if (PKG[pkg]) out.push({ ...PKG[pkg] });
+    $$('[data-addon]').forEach(cb => {
+      if (!cb.checked) return;
+      const a = ADDONS[cb.dataset.addon];
+      const q = a.qty ? Math.max(1, parseInt($(`[data-qty="${cb.dataset.addon}"]`).value) || 1) : 1;
+      out.push({ name: a.qty && q > 1 ? `${a.name} × ${q}` : a.name, note: a.note, once: (a.once || 0) * q, mo: a.mo || 0 });
+    });
+    return out;
+  }
+  function totals() {
+    const L = lines();
+    const once = L.reduce((s, l) => s + (l.once || 0), 0), mo = L.reduce((s, l) => s + (l.mo || 0), 0);
+    const pct = Math.min(100, Math.max(0, parseFloat($('[data-discount]').value) || 0));
+    const onceOff = once * pct / 100, moOff = $('[data-disc-monthly]').checked ? mo * pct / 100 : 0;
+    return { L, once, mo, pct, onceOff, moOff, finalOnce: once - onceOff, finalMo: mo - moOff };
+  }
+  function render() {
+    const t = totals(), type = $('[data-type]').value, pay = $('[data-pay]').value.trim();
+    $('[data-r-type]').textContent = type;
+    $('[data-r-no]').textContent = $('[data-no-in]').value;
+    $('[data-r-date]').textContent = fmtDate(now);
+    $('[data-r-billto]').textContent = $('[data-billto]').value;
+    $('[data-paid]').hidden = type !== 'Receipt';
+    $('[data-r-due-row]').hidden = type === 'Receipt';
+    $('[data-lines]').innerHTML = t.L.length ? t.L.map(l => `<tr><td><b>${esc(l.name)}</b><small>${esc(l.note)}</small></td><td>${l.once ? money(l.once) : '—'}</td><td>${l.mo ? money(l.mo) + '/mo' : '—'}</td></tr>`).join('')
+      : `<tr><td colspan="3" style="text-align:center;color:var(--ink-faint)">Pick a website package or add-ons on the left</td></tr>`;
+    $('[data-totals]').innerHTML =
+      (t.pct ? `<tr class="sub"><td>Subtotal</td><td>${money(t.once)}</td><td>${money(t.mo)}/mo</td></tr>
+                <tr class="disc"><td>${t.pct}% discount${t.moOff ? ' (incl. monthly)' : ''}</td><td>−${money(t.onceOff)}</td><td>${t.moOff ? '−' + money(t.moOff) + '/mo' : '—'}</td></tr>` : '') +
+      `<tr class="grand"><td>Total</td><td>${money(t.finalOnce)}</td><td>${money(t.finalMo)}/mo</td></tr>`;
+    $('[data-due-label]').textContent = type === 'Receipt' ? 'Amount paid' : type === 'Quote' ? 'Due before work begins' : 'Amount due now';
+    $('[data-due]').textContent = money(t.finalOnce) + (t.finalMo ? ` + ${money(t.finalMo)}/mo` : '');
+    $('[data-pay-box]').hidden = !pay; $('[data-r-pay]').textContent = pay;
+    return { t, type, pay };
+  }
+  function asText() {
+    const { t, type, pay } = render();
+    const L = [`NexaOne LLC · ${type.toUpperCase()} ${$('[data-no-in]').value}`, `Date: ${fmtDate(now)}`, '', 'Bill to:', $('[data-billto]').value, ''];
+    t.L.forEach(l => L.push(`• ${l.name}: ${[l.once ? money(l.once) : '', l.mo ? money(l.mo) + '/mo' : ''].filter(Boolean).join(' + ')}`));
+    if (t.pct) L.push(`• ${t.pct}% discount: -${money(t.onceOff)}${t.moOff ? ` and -${money(t.moOff)}/mo` : ''}`);
+    L.push('', `TOTAL: ${money(t.finalOnce)} one-time · ${money(t.finalMo)}/mo`);
+    L.push(type === 'Receipt' ? 'Status: PAID — thank you!' : `Amount due now: ${money(t.finalOnce)}`);
+    if (pay) L.push(`How to pay: ${pay}`);
+    L.push('', 'Terms: The one-time total is due in full before work begins. Monthly services are billed each month starting the month after launch and can be cancelled anytime.', '', 'Thank you!', 'Ava Magee · NexaOne LLC · nexaone.org');
+    return L.join('\n');
+  }
+
+  document.addEventListener('input', render);
+  document.addEventListener('change', render);
+  // Changing the page count ticks the Extra pages box automatically
+  $('[data-qty="pages"]').addEventListener('input', () => { $('[data-addon="pages"]').checked = true; render(); });
+
+  $('[data-print]').addEventListener('click', () => {
+    const { type } = render(); const title = document.title;
+    document.title = `Gradys ${type} ${$('[data-no-in]').value}`;
+    window.print(); document.title = title;
+  });
+  $('[data-email]').addEventListener('click', () => {
+    const { type } = render();
+    location.href = `mailto:${encodeURIComponent($('[data-to]').value.trim())}?subject=${encodeURIComponent(`Gradys website ${type.toLowerCase()} ${$('[data-no-in]').value}`)}&body=${encodeURIComponent(asText())}`;
+  });
+  $('[data-copy]').addEventListener('click', async e => {
+    const btn = e.currentTarget, text = asText();
+    try { await navigator.clipboard.writeText(text); } catch {
+      const ta = Object.assign(document.createElement('textarea'), { value: text }); document.body.append(ta); ta.select(); try { document.execCommand('copy'); } catch {} ta.remove();
+    }
+    const old = btn.textContent; btn.textContent = '✓ Copied'; setTimeout(() => (btn.textContent = old), 1600);
+  });
+  render();
+})();
+</script>
+</body>
+</html>
