@@ -69,6 +69,9 @@
   td { padding: 11px 8px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
   td small { display: block; color: var(--ink-faint); font-size: .8rem; }
   tr.disc td { color: var(--green); font-weight: 700; }
+  tfoot tr.credit td { color: #dc2626; font-weight: 700; padding-top: 6px; padding-bottom: 6px; }
+  tfoot tr.credit td small { display: block; color: #ef6b6b; font-weight: 500; font-size: .78rem; }
+  tfoot tr.saved td { text-align: right !important; color: #dc2626; font-weight: 800; font-size: .95rem; padding-top: 2px; }
   tfoot td { border: 0; padding: 7px 8px; font-weight: 700; }
   tfoot tr.sub td { color: var(--ink-soft); font-weight: 600; padding-top: 16px; }
   tfoot tr.grand td { font-size: 1.2rem; font-weight: 800; border-top: 2px solid var(--ink); padding-top: 12px; }
@@ -94,8 +97,10 @@
     td { padding: 8px; }
     .due { margin-top: 12px; padding: 12px 18px; }
     .terms { margin-top: 18px; padding-top: 14px; }
-    .foot { margin-top: 18px; }
-    .doc, table, .terms { break-inside: avoid; }
+    .foot { margin-top: 14px; }
+    .doc { zoom: .78; }                 /* fit longer invoices on one page */
+    .terms:has([data-pay-box][hidden]) { grid-template-columns: 1fr !important; }
+    tr { break-inside: avoid; }
   }
 </style>
 </head>
@@ -219,6 +224,7 @@ gradysmidvale@gmail.com</textarea>
     $$('.cline').forEach(r => {
       const name = $('.c-name', r).value.trim(), amt = parseFloat($('.c-amt', r).value) || 0, kind = $('.c-kind', r).value;
       if (!name && !amt) return;
+      if (kind === 'disc') { out.push({ name: name || 'Discount', note: $('.c-note', r).value.trim(), disc: amt }); return; }
       out.push({ name: name || 'Service', note: $('.c-note', r).value.trim(), once: kind === 'now' ? amt : 0, mo: kind === 'mo' ? amt : 0 });
     });
     return out;
@@ -228,7 +234,7 @@ gradysmidvale@gmail.com</textarea>
     const row = document.createElement('div');
     row.className = 'cline';
     row.innerHTML = `<input class="c-name" placeholder="Description" value="${esc(name)}"><input class="c-amt" type="number" min="0" step="0.01" placeholder="$" value="${esc(amt)}"><button type="button" aria-label="Remove line">×</button>
-      <input class="c-note" placeholder="Note (optional), e.g. Nov 16 – Dec 16" value="${esc(note)}"><select class="c-kind"><option value="now"${kind === 'now' ? ' selected' : ''}>Billed now</option><option value="mo"${kind === 'mo' ? ' selected' : ''}>Monthly</option></select>`;
+      <input class="c-note" placeholder="Note (optional), e.g. Nov 16 – Dec 16" value="${esc(note)}"><select class="c-kind"><option value="now"${kind === 'now' ? ' selected' : ''}>Billed now</option><option value="mo"${kind === 'mo' ? ' selected' : ''}>Monthly</option><option value="disc"${kind === 'disc' ? ' selected' : ''}>Discount (red)</option></select>`;
     $('button', row).addEventListener('click', () => { row.remove(); render(); });
     $('[data-custom]').append(row);
     render();
@@ -237,11 +243,13 @@ gradysmidvale@gmail.com</textarea>
   $('[data-add-line]').addEventListener('click', () => $('.c-name', addLine()).focus());
   window.addLine = addLine;
   function totals() {
-    const L = lines();
+    const all = lines(), L = all.filter(l => !l.disc), D = all.filter(l => l.disc);
     const once = L.reduce((s, l) => s + (l.once || 0), 0), mo = L.reduce((s, l) => s + (l.mo || 0), 0);
+    const credits = D.reduce((s, l) => s + l.disc, 0), afterCredits = Math.max(0, once - credits);
     const pct = Math.min(100, Math.max(0, parseFloat($('[data-discount]').value) || 0));
-    const onceOff = once * pct / 100, moOff = $('[data-disc-monthly]').checked ? mo * pct / 100 : 0;
-    return { L, once, mo, pct, onceOff, moOff, finalOnce: once - onceOff, finalMo: mo - moOff };
+    const onceOff = afterCredits * pct / 100, moOff = $('[data-disc-monthly]').checked ? mo * pct / 100 : 0;
+    const finalOnce = afterCredits - onceOff, finalMo = mo - moOff;
+    return { L, D, once, mo, credits, pct, onceOff, moOff, finalOnce, finalMo, saved: once - finalOnce + moOff };
   }
   function render() {
     const t = totals(), type = $('[data-type]').value, pay = $('[data-pay]').value.trim();
@@ -254,6 +262,12 @@ gradysmidvale@gmail.com</textarea>
     $('[data-lines]').innerHTML = t.L.length ? t.L.map(l => `<tr><td><b>${esc(l.name)}</b>${l.note ? `<small>${esc(l.note)}</small>` : ''}</td><td>${l.once ? money(l.once) : '—'}</td><td>${l.mo ? money(l.mo) + '/mo' : '—'}</td></tr>`).join('')
       : `<tr><td colspan="3" style="text-align:center;color:var(--ink-faint)">Pick a website package or add-ons on the left</td></tr>`;
     $('[data-totals]').innerHTML =
+      ((t.pct || t.D.length) ? `<tr class="sub"><td>Subtotal</td><td>${money(t.once)}</td><td>${t.mo ? money(t.mo) + '/mo' : '—'}</td></tr>` : '') +
+      t.D.map(d => `<tr class="credit"><td>${esc(d.name)}${d.note ? `<small>${esc(d.note)}</small>` : ''}</td><td>−${money(d.disc)}</td><td>—</td></tr>`).join('') +
+      (t.pct ? `<tr class="credit"><td>${t.pct}% discount${t.moOff ? ' (incl. monthly)' : ''}</td><td>−${money(t.onceOff)}</td><td>${t.moOff ? '−' + money(t.moOff) + '/mo' : '—'}</td></tr>` : '') +
+      `<tr class="grand"><td>Total</td><td>${money(t.finalOnce)}</td><td>${t.finalMo ? money(t.finalMo) + "/mo" : "—"}</td></tr>` +
+      (t.saved > 0 ? `<tr class="saved"><td colspan="3">You save ${money(t.saved)}</td></tr>` : '');
+    if (false) $('[data-totals]').innerHTML =
       (t.pct ? `<tr class="sub"><td>Subtotal</td><td>${money(t.once)}</td><td>${money(t.mo)}/mo</td></tr>
                 <tr class="disc"><td>${t.pct}% discount${t.moOff ? ' (incl. monthly)' : ''}</td><td>−${money(t.onceOff)}</td><td>${t.moOff ? '−' + money(t.moOff) + '/mo' : '—'}</td></tr>` : '') +
       `<tr class="grand"><td>Total</td><td>${money(t.finalOnce)}</td><td>${t.finalMo ? money(t.finalMo) + "/mo" : "—"}</td></tr>`;
@@ -266,8 +280,11 @@ gradysmidvale@gmail.com</textarea>
     const { t, type, pay } = render();
     const L = [`NexaOne LLC · ${type.toUpperCase()} ${$('[data-no-in]').value}`, `Date: ${fmtDate(now)}`, '', 'Bill to:', $('[data-billto]').value, ''];
     t.L.forEach(l => L.push(`• ${l.name}: ${[l.once ? money(l.once) : '', l.mo ? money(l.mo) + '/mo' : ''].filter(Boolean).join(' + ')}`));
+    if (t.D.length || t.pct) L.push('', `Subtotal: ${money(t.once)}`);
+    t.D.forEach(d => L.push(`• ${d.name}: -${money(d.disc)}`));
     if (t.pct) L.push(`• ${t.pct}% discount: -${money(t.onceOff)}${t.moOff ? ` and -${money(t.moOff)}/mo` : ''}`);
-    L.push('', `TOTAL: ${money(t.finalOnce)} one-time · ${money(t.finalMo)}/mo`);
+    L.push('', `TOTAL: ${money(t.finalOnce)} one-time${t.finalMo ? ` · ${money(t.finalMo)}/mo` : ''}`);
+    if (t.saved > 0) L.push(`You save ${money(t.saved)}`);
     L.push(type === 'Receipt' ? 'Status: PAID — thank you!' : `Amount due now: ${money(t.finalOnce)}`);
     if (pay) L.push(`How to pay: ${pay}`);
     L.push('', 'Terms: The one-time total is due in full before work begins. Monthly services are billed each month starting the month after launch and can be cancelled anytime.', '', 'Thank you!', 'Ava Magee · NexaOne LLC · nexaone.org');
