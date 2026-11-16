@@ -37,6 +37,13 @@
   .field input, .field select, .field textarea { font: inherit; font-size: .92rem; font-weight: 500; padding: 9px 10px; border-radius: 10px; border: 0; color: var(--ink); width: 100%; }
   .field textarea { min-height: 54px; resize: vertical; }
   .actions { display: grid; gap: 8px; margin-top: 16px; }
+  .cline { display: grid; grid-template-columns: 1fr 74px 30px; gap: 6px; margin-bottom: 6px; }
+  .cline input, .cline select { font: inherit; font-size: .85rem; padding: 8px; border-radius: 9px; border: 0; color: var(--ink); min-width: 0; }
+  .cline .c-note { grid-column: 1 / 2; }
+  .cline select { grid-column: 2 / 4; }
+  .cline button { border: 0; border-radius: 9px; background: rgba(255,255,255,.12); color: #fff; cursor: pointer; font-size: 1rem; }
+  .cline button:hover { background: #ef4444; }
+  .cline + .cline { padding-top: 8px; border-top: 1px dashed rgba(255,255,255,.18); }
   .btn { font: inherit; font-weight: 800; font-size: .95rem; padding: 12px 14px; border-radius: 12px; border: 1.5px solid transparent; cursor: pointer; text-align: center; }
   .btn.primary { background: #fff; color: var(--accent-strong); }
   .btn.ghost { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.3); }
@@ -102,6 +109,10 @@
     <label class="opt"><input type="checkbox" data-addon="ads"><span>Ad creation (3/mo)</span><small>$100/mo</small></label>
     <label class="opt"><input type="checkbox" data-addon="ai"><span>AI chatbot</span><small>$200 + $30/mo</small></label>
     <label class="opt"><input type="checkbox" data-addon="seo"><span>SEO optimization</span><small>$100</small></label>
+
+    <h2>Custom line items</h2>
+    <div data-custom></div>
+    <button type="button" class="btn ghost" style="width:100%;padding:9px" data-add-line>＋ Add a line</button>
 
     <h2>Details</h2>
     <div class="row">
@@ -194,8 +205,27 @@ gradysmidvale@gmail.com</textarea>
       const q = a.qty ? Math.max(1, parseInt($(`[data-qty="${cb.dataset.addon}"]`).value) || 1) : 1;
       out.push({ name: a.qty && q > 1 ? `${a.name} × ${q}` : a.name, note: a.note, once: (a.once || 0) * q, mo: a.mo || 0 });
     });
+    // Custom lines: "Billed now" counts toward the amount due; "Monthly" goes in the monthly column
+    $$('.cline').forEach(r => {
+      const name = $('.c-name', r).value.trim(), amt = parseFloat($('.c-amt', r).value) || 0, kind = $('.c-kind', r).value;
+      if (!name && !amt) return;
+      out.push({ name: name || 'Service', note: $('.c-note', r).value.trim(), once: kind === 'now' ? amt : 0, mo: kind === 'mo' ? amt : 0 });
+    });
     return out;
   }
+  // Custom line editor
+  function addLine(name = '', amt = '', note = '', kind = 'now') {
+    const row = document.createElement('div');
+    row.className = 'cline';
+    row.innerHTML = `<input class="c-name" placeholder="Description" value="${esc(name)}"><input class="c-amt" type="number" min="0" step="0.01" placeholder="$" value="${esc(amt)}"><button type="button" aria-label="Remove line">×</button>
+      <input class="c-note" placeholder="Note (optional), e.g. Nov 16 – Dec 16" value="${esc(note)}"><select class="c-kind"><option value="now"${kind === 'now' ? ' selected' : ''}>Billed now</option><option value="mo"${kind === 'mo' ? ' selected' : ''}>Monthly</option></select>`;
+    $('button', row).addEventListener('click', () => { row.remove(); render(); });
+    $('[data-custom]').append(row);
+    render();
+    return row;
+  }
+  $('[data-add-line]').addEventListener('click', () => $('.c-name', addLine()).focus());
+  window.addLine = addLine;
   function totals() {
     const L = lines();
     const once = L.reduce((s, l) => s + (l.once || 0), 0), mo = L.reduce((s, l) => s + (l.mo || 0), 0);
@@ -211,7 +241,7 @@ gradysmidvale@gmail.com</textarea>
     $('[data-r-billto]').textContent = $('[data-billto]').value;
     $('[data-paid]').hidden = type !== 'Receipt';
     $('[data-r-due-row]').hidden = type === 'Receipt';
-    $('[data-lines]').innerHTML = t.L.length ? t.L.map(l => `<tr><td><b>${esc(l.name)}</b><small>${esc(l.note)}</small></td><td>${l.once ? money(l.once) : '—'}</td><td>${l.mo ? money(l.mo) + '/mo' : '—'}</td></tr>`).join('')
+    $('[data-lines]').innerHTML = t.L.length ? t.L.map(l => `<tr><td><b>${esc(l.name)}</b>${l.note ? `<small>${esc(l.note)}</small>` : ''}</td><td>${l.once ? money(l.once) : '—'}</td><td>${l.mo ? money(l.mo) + '/mo' : '—'}</td></tr>`).join('')
       : `<tr><td colspan="3" style="text-align:center;color:var(--ink-faint)">Pick a website package or add-ons on the left</td></tr>`;
     $('[data-totals]').innerHTML =
       (t.pct ? `<tr class="sub"><td>Subtotal</td><td>${money(t.once)}</td><td>${money(t.mo)}/mo</td></tr>
