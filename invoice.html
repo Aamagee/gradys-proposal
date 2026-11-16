@@ -86,6 +86,16 @@
     .panel { display: none !important; }
     .wrap { display: block; padding: 0; max-width: none; }
     .doc { box-shadow: none; padding: 0; border-radius: 0; }
+    /* Keep the desktop two-column layout on paper so it fits one page */
+    .d-parties, .terms { grid-template-columns: 1fr 1fr !important; }
+    .d-title { text-align: right !important; }
+    .d-meta { justify-content: flex-end !important; }
+    .d-parties { padding: 16px 0; }
+    td { padding: 8px; }
+    .due { margin-top: 12px; padding: 12px 18px; }
+    .terms { margin-top: 18px; padding-top: 14px; }
+    .foot { margin-top: 18px; }
+    .doc, table, .terms { break-inside: avoid; }
   }
 </style>
 </head>
@@ -246,7 +256,7 @@ gradysmidvale@gmail.com</textarea>
     $('[data-totals]').innerHTML =
       (t.pct ? `<tr class="sub"><td>Subtotal</td><td>${money(t.once)}</td><td>${money(t.mo)}/mo</td></tr>
                 <tr class="disc"><td>${t.pct}% discount${t.moOff ? ' (incl. monthly)' : ''}</td><td>−${money(t.onceOff)}</td><td>${t.moOff ? '−' + money(t.moOff) + '/mo' : '—'}</td></tr>` : '') +
-      `<tr class="grand"><td>Total</td><td>${money(t.finalOnce)}</td><td>${money(t.finalMo)}/mo</td></tr>`;
+      `<tr class="grand"><td>Total</td><td>${money(t.finalOnce)}</td><td>${t.finalMo ? money(t.finalMo) + "/mo" : "—"}</td></tr>`;
     $('[data-due-label]').textContent = type === 'Receipt' ? 'Amount paid' : type === 'Quote' ? 'Due before work begins' : 'Amount due now';
     $('[data-due]').textContent = money(t.finalOnce) + (t.finalMo ? ` + ${money(t.finalMo)}/mo` : '');
     $('[data-pay-box]').hidden = !pay; $('[data-r-pay]').textContent = pay;
